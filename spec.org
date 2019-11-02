@@ -9,24 +9,27 @@
  [ je  jz  jz  jz  jz  miz miz miz  miz  miz 
  ] jne jnz jnz jnz            
 
- r0 General-Purpose(0)
- r1 General-Purpose(0)
- r2 General-Purpose(0)
- r3 General-Purpose(0)
- rc Condition Register(0)
- rs Shift Register(0)
- rp Page Register(0)
- ri Instruction Pointer(0)
+| r0 | General-Purpose(0)     |
+| r1 | General-Purpose(0)     |
+| r2 | General-Purpose(0)     |
+| r3 | General-Purpose(0)     |
+| rc | Condition Register(0)  |
+| rs | Shift Register(0)      |
+| rp | Page Register(0)       |
+| ri | Instruction Pointer(0) |
 
  d = Destination
+
  f = Flag
+
  i = Instruction
+
  s = Source
 
- add: iidddsss
- nand: iidddsss
- mem: iidddfss
- miz: iidddsss
+| add  | iidddsss |
+| nand | iidddsss |
+| mem  | iidddfss |
+| miz  | iidddsss |
 
  Make sure to get =1= at the start of your program, or you're fucked!
  #+BEGIN_SRC asm
@@ -36,7 +39,9 @@
 
 ** Memory Map
  0x0000 - 0x00FF: NVMe
+
  0x0100 - 0x013F: I/O
+
  0x0140 - 0xFFFF: Memory
 *** NVMe
  Execution starts here. ROM (or selected file with VM) provides setup code.
