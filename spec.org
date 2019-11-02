@@ -1,0 +1,56 @@
+* BreadRISC8
+** CPU Layout
+ + inc add add add add add add add  add  add 
+ - dec sub                 bop nand nand nand
+ < mov mov mov mov mov     bsh bsh  bsh 
+ > lea lea lea lea lea lea ldr ldr  mem  mem 
+ . out out out             str str
+ , in  in  in             
+ [ je  jz  jz  jz  jz  miz miz miz  miz  miz 
+ ] jne jnz jnz jnz            
+
+ r0 General-Purpose(0)
+ r1 General-Purpose(0)
+ r2 General-Purpose(0)
+ r3 General-Purpose(0)
+ rc Condition Register(0)
+ rs Shift Register(0)
+ rp Page Register(0)
+ ri Instruction Pointer(0)
+
+ d = Destination
+ f = Flag
+ i = Instruction
+ s = Source
+
+ add: iidddsss
+ nand: iidddsss
+ mem: iidddfss
+ miz: iidddsss
+
+ Make sure to get =1= at the start of your program, or you're fucked!
+ #+BEGIN_SRC asm
+ miz r0, r0
+ miz r0, ri ; Now you have 1!
+ #+END_SRC
+
+** Memory Map
+ 0x0000 - 0x00FF: NVMe
+ 0x0100 - 0x013F: I/O
+ 0x0140 - 0xFFFF: Memory
+*** NVMe
+ Execution starts here. ROM (or selected file with VM) provides setup code.
+
+*** Memory mapped I/O!
+ We use a two byte structure:
+ Command Byte : Set to 1 for write, 2 for read. Resets after usage.
+ I/O Byte : Data either sent or set on I/O action.
+*** Memory
+ This is free memory.
+
+* BreadRISC16
+To be determined.
+The sixteen bit redesign of [[BreadRISC8][BreadRISC8]]
+* MRISC
+Design a CPU, programming language, and OS
+in which instruction level parallelism is completely unnecessary.
