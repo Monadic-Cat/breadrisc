@@ -1,13 +1,20 @@
 * BreadRISC8
 ** CPU Layout
- + inc add add add add add add add  add  add 
- - dec sub                 bop nand nand nand
- < mov mov mov mov mov     bsh bsh  bsh 
- > lea lea lea lea lea lea ldr ldr  mem  mem 
- . out out out             str str
- , in  in  in             
- [ je  jz  jz  jz  jz  miz miz miz  miz  miz 
- ] jne jnz jnz jnz            
+| + | inc | add | add | add | add | add | add | add  | add  | add  |
+|   |     |     |     |     |     |     |     |      |      |      |
+| - | dec | sub |     |     |     |     | bop | nand | nand | nand |
+|   |     |     |     |     |     |     |     |      |      |      |
+| < | mov | mov | mov | mov | mov |     | bsh | bsh  | bsh  |      |
+|   |     |     |     |     |     |     |     |      |      |      |
+| > | lea | lea | lea | lea | lea | lea | ldr | ldr  | mem  | mem  |
+|   |     |     |     |     |     |     |     |      |      |      |
+| . | out | out | out |     |     |     | str | str  |      |      |
+|   |     |     |     |     |     |     |     |      |      |      |
+| , | in  | in  | in  |     |     |     |     |      |      |      |
+|   |     |     |     |     |     |     |     |      |      |      |
+| [ | je  | jz  | jz  | jz  | jz  | miz | miz | miz  | miz  | miz  |
+|   |     |     |     |     |     |     |     |      |      |      |
+| ] | jne | jnz | jnz | jnz |     |     |     |      |      |      |
 
 | r0 | General-Purpose(0)     |
 | r1 | General-Purpose(0)     |
