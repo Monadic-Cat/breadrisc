@@ -1,22 +1,30 @@
-use super::base::{Add, Instruction, Mem, Miz, Nand, RegisterAddress, RegisterAddressOverflow, IO, NRegisterAddress, MyFrom};
+//! Assembler library for BreadRISC8.
+
+use super::base::{
+    Add, Instruction, Mem, Miz, MyFrom, NRegisterAddress, Nand, RegisterAddress,
+    RegisterAddressOverflow, IO,
+};
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_while1, take_while},
+    bytes::complete::{tag, take_while, take_while1},
     error::ErrorKind::TooLarge,
     multi::{many0, many1},
     sequence::tuple,
     Err::Failure,
     IResult,
 };
-use std::iter::once;
-use typenum::{U2, U3};
 use std::convert::TryFrom;
+use std::iter::once;
+use thiserror::Error;
+use typenum::{U2, U3};
+use std::collections::HashMap;
 
 // From mice:
 fn whitespace(input: &str) -> IResult<&str, &str> {
     alt((tag(" "), tag("\t")))(input)
 }
 
+/// Integer bases
 enum Base {
     Hexadecimal,
     Octal,
@@ -34,18 +42,22 @@ impl Base {
     }
 }
 
+/// Parser for a hexadecimal (Base 16) integer
 fn hex(input: &str) -> IResult<&str, Base> {
     let (input, _) = tag("0x")(input)?;
     Ok((input, Base::Hexadecimal))
 }
+/// Parser for a binary (Base 2) integer
 fn bin(input: &str) -> IResult<&str, Base> {
     let (input, _) = tag("b")(input)?;
     Ok((input, Base::Binary))
 }
+/// Parser for an octal (Base 8) integer
 fn oct(input: &str) -> IResult<&str, Base> {
     let (input, _) = tag("0")(input)?;
     Ok((input, Base::Octal))
 }
+/// Parser for an integer base prefix.
 fn integer_base(input: &str) -> IResult<&str, u8> {
     let (input, base) = match alt((hex, bin, oct))(input) {
         Ok((input, base)) => (input, base.radix()),
@@ -188,47 +200,148 @@ fn instruction_sep(input: &str) -> IResult<&str, Vec<(&str, Vec<&str>)>> {
     many1(tuple((tag("\n"), many0(whitespace))))(input)
 }
 
-enum Directive {
-    Pad {
-        amount: usize,
-        content: char,
-    },
-    PadUntil {
-        end: usize,
-        content: char,
-    },
-}
 /// Directives of the form `#[kind(args...)]`
+///
 /// `#[pad(100, 0)]` will insert 100 null bytes.
+///
 /// `#[pad_until(0x100, 0)]` will insert null bytes
 /// until it reaches address `0x100` in memory.
+///
+/// `#[label("heck")]` will define a label `heck`
+/// for a deferred instruction to use.
+/// The semantics of labels are not fully defined yet.
+/// Using a label across hard page boundaries is not permitted.
+///
+/// `#[place_label("heck")]` will place the byte address of label `heck`
+/// into the binary at the current position.
+///
+/// `#[ord(n)]` will cause all labels to be offset `n` bytes.
+///
+/// `#[hard_ord(n)]` will cause all memory addresses to be offset `n` bytes.
+/// There may only be one `ord` or `hard_ord` directive in a program.
+///
+/// Without an `ord`-type directive, labels assume 0 offset.
+/// Additionally, it is an error for any offset + label address combination
+/// to be greater than 255.
+enum Directive {
+    /// Variable size in the final binary.
+    Pad { amount: usize, content: char },
+    /// Variable size in the final binary.
+    PadUntil { end: usize, content: char },
+    /// Zero size in the final binary.
+    DefineLabel { name: String },
+    /// One byte in the final binary.
+    UseLabel { name: String },
+    /// Zero size in the final binary.
+    Ord { offset: u8 },
+    /// Zero size in the final binary.
+    HardOrd { offset: u8 },
+}
+
+/// Parser for a program directive
 fn directive(input: &str) -> IResult<&str, Directive> {
+    let (input, _) = tag("#")(input)?;
     unimplemented!()
+}
+/// Instruction that requires information
+/// about the rest of the program to be assembled correctly.
+struct DeferredInstruction {}
+
+#[derive(Debug, Error)]
+enum ResolverError {
+    #[error("failed to resolve label")]
+    MissingLabel,
+    #[error("attempted to use label across hard page boundary")]
+    InvalidLabel,
 }
 
 struct Label {
+    name: String,
+}
+struct Address {
+    index: u8,
+    /// Kept internally to allow checking for invalid label usage.
+    /// Note that a page is half the available address space;
+    /// the hard page boundaries are the -1 : 0  and 255 : 256
+    /// Behind the 0th and after the 2nd pages, relative to the current one.
+    page_offset: u8,
+}
+/// The two kinds of offset are mutually exclusive
+/// because I think their interaction would be confusing.
+enum AddressOffset {
+    Label(u8),
+    Global(u8),
+}
 
+/// Global information about the program.
+/// Labels, label offset, and global offset.
+struct ProgInfo {
+    labels: HashMap<Label, Address>,
+    offset: AddressOffset,
 }
-struct DeferredInstruction {
-    
-}
-struct ProgInfo {}
+
 impl DeferredInstruction {
-    fn finalize(&mut self, prog: ProgInfo) -> Instruction {
+    fn finalize(&mut self, prog: ProgInfo) -> Result<Instruction, ResolverError> {
         unimplemented!()
     }
 }
 
-fn label(input: &str) -> IResult<&str, Label> {
-    unimplemented!()
+/// Instruction that may or may not require
+/// information about the rest of the program
+/// to be assembled correctly.
+enum EventualInstruction {
+    Immediate(Instruction),
+    Deferred(DeferredInstruction),
 }
 
+impl EventualInstruction {
+    fn finalize(&mut self, prog: ProgInfo) -> Result<Instruction, ResolverError> {
+        match self {
+            EventualInstruction::Immediate(x) => Ok(*x),
+            EventualInstruction::Deferred(x) => x.finalize(prog),
+        }
+    }
+}
+impl From<Instruction> for EventualInstruction {
+    fn from(i: Instruction) -> Self {
+        Self::Immediate(i)
+    }
+}
+
+/// Parser for a comment
 fn comment(input: &str) -> IResult<&str, &str> {
     let (input, _) = tag(";")(input)?;
     take_while(|x| x != '\n')(input)
 }
 
+/// Sum of literal instructions and special elements
+/// of a BreadRISC8 assembly program.
+enum Node {
+    Instruction(EventualInstruction),
+    Directive(Directive),
+    Comment(String),
+}
+
+/// Parser for an arbitrary AST node.
+fn node(input: &str) -> IResult<&str, Node> {
+    alt((
+        |x| {
+            let (i, v) = directive(x)?;
+            Ok((i, Node::Directive(v)))
+        },
+        |x| {
+            let (i, v) = instruction(x)?;
+            Ok((i, Node::Instruction(v.into())))
+        },
+        |x| {
+            let (i, v) = comment(x)?;
+            Ok((i, Node::Comment(String::from(v))))
+        },
+    ))(input)
+}
+
 type Program = Vec<Instruction>;
+/// Parser for a whole BreadRISC8 assembly program.
 fn program(input: &str) -> IResult<&str, Program> {
     let (input, (first, rest)) =
         tuple((instruction, many0(tuple((instruction_sep, instruction)))))(input)?;
@@ -237,8 +350,10 @@ fn program(input: &str) -> IResult<&str, Program> {
     Ok((input, prog_it.collect()))
 }
 
+/// Assemble a full BreadRISC8 program.
 pub fn assemble(input: &str) -> Result<Vec<u8>, nom::Err<(&str, nom::error::ErrorKind)>> {
     let (_, prog) = program(input)?;
+
     Ok(prog.into_iter().map(|inst| u8::from(inst)).collect())
 }
 
@@ -275,5 +390,4 @@ mod test {
     fn invalid_miz() {
         assemble("miz 3, 8").unwrap();
     }
-
 }

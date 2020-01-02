@@ -18,7 +18,7 @@ impl Registers {
         self.0[SHIFT_REGISTER] >>= 1;
         self.0[INSTRUCTION_POINTER] = self.0[INSTRUCTION_POINTER]
             .checked_add(1)
-            .expect("Finished.");
+            .expect("Finished."); // This is INCORRECT behavior. Should overflow into the page register.
     }
 }
 impl Index<RegisterAddress> for Registers {

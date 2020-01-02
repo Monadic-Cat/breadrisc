@@ -94,22 +94,26 @@ pub(crate) enum IO {
     Read,
     Write,
 }
+/// Add instruction. Uses wrapping arithmetic.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Add {
     pub(crate) destination: RegisterAddress,
     pub(crate) source: RegisterAddress,
 }
+/// Bitwise NAND instruction.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Nand {
     pub(crate) destination: RegisterAddress,
     pub(crate) source: RegisterAddress,
 }
+/// Read/Write between memory and registers.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Mem {
     pub(crate) destination: RegisterAddress,
     pub(crate) source: NRegisterAddress<U2>,
     pub(crate) direction: IO,
 }
+/// Move If Zero instruction.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Miz {
     pub(crate) destination: RegisterAddress,

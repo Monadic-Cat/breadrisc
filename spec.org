@@ -1,4 +1,4 @@
-* BreadRISC8
+* defunct-BreadRISC8
 ** CPU Layout
 | + | inc | add | add | add | add | add | add | add  | add  | add  |
 |   |     |     |     |     |     |     |     |      |      |      |
@@ -66,3 +66,30 @@ The sixteen bit redesign of [[BreadRISC8][BreadRISC8]]
 * MRISC
 Design a CPU, programming language, and OS
 in which instruction level parallelism is completely unnecessary.
+* BIG PARALLEL
+Hundreds of cores, with pairs of circular buffers between every pair of cores, for two-way message passing.
+Internal scheduler for managing what work goes to which cores when?
+
+Initially a 24 bit processor, though larger words are on the table.
+
+
+| + | inc | add   | add   | add   | add   | add   | add   |
+| - | dec | sub   | sub   | sub   | sub   | sub   | sub   |
+| < | mov | mov   | mov   | mov   | mov   | mov   | mov   |
+| > |     |       |       |       |       |       |       |
+| . | out | out   | offer | offer | offer | offer | offer |
+| , | in  | in    | poll  | poll  | poll  | poll  | poll  |
+| [ | cmp | cmp   | cmp   | cmp   | cmp   | cmp   | cmp   |
+| ] | jmp | jmp   | jmp   | jmp   | jmp   | jmp   | jmp   |
+|   |     | spawn | spawn | spawn | spawn | spawn | spawn |
+|   |     |       |       | die   | die   | die   | die   |
+|   |     |       |       | push  | push  | push  | push  |
+|   |     |       |       | pop   | pop   | pop   | pop   |
+|   |     |       |       |       | bop   | bop   | bop   |
+|   |     |       |       |       |       | mul   | mul   |
+|   |     |       |       |       |       | div   | div   |
+|   |     |       |       |       |       |       | sqrt  |
+|   |     |       |       |       |       |       | pow   |
+
+Note that the CPU will need to maintain a central table of idle cores to send =spawn='s to.
+It is also possible that we'll want more advanced scheduling and task management hardware.
